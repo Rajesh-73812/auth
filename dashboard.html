@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - User Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f4f7fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar {
+            background-color: #343a40;
+        }
+        .dashboard-container {
+            margin: 30px auto;
+            max-width: 1200px;
+        }
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .btn-custom {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-custom:hover {
+            background-color: #0056b3;
+        }
+        .error {
+            color: #dc3545;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">User Management</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link active" href="dashboard.html">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" id="navLogout">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Dashboard Page -->
+    <div class="container dashboard-container">
+        <h2 class="text-center mb-4">User Dashboard</h2>
+        <div class="table-container">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Full Name</th>
+                        <th>Email</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="userTableBody"></tbody>
+            </table>
+            <button class="btn btn-custom mt-3" data-bs-toggle="modal" data-bs-target="#userModal">Add User</button>
+        </div>
+    </div>
+
+    <!-- Modal for Add/Edit User -->
+    <div class="modal fade" id="userModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Add User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="userForm">
+                        <div class="mb-3">
+                            <label for="modalFullName" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="modalFullName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="modalEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="modalEmail" required>
+                            <div id="modalEmailError" class="error"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="modalPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="modalPassword" required>
+                            <div id="modalPasswordError" class="error"></div>
+                        </div>
+                        <input type="hidden" id="editIndex">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-custom" id="saveUser">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize localStorage
+        let users = [];
+        let loggedInUser = null;
+
+        // Load users and logged-in user
+        function loadData() {
+            try {
+                const storedUsers = localStorage.getItem('users');
+                users = storedUsers ? JSON.parse(storedUsers) : [];
+                loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
+                console.log('Loaded users:', users); // Debugging log
+                console.log('Logged in user:', loggedInUser); // Debugging log
+            } catch (e) {
+                console.error('Error parsing localStorage data:', e);
+                users = [];
+            }
+        }
+
+        // Redirect to login if not logged in
+        loadData();
+        if (!loggedInUser) {
+            window.location.href = 'login.html';
+        }
+
+        // Render users in table
+        function renderUsers() {
+            const tbody = document.getElementById('userTableBody');
+            if (!tbody) {
+                console.error('Table body not found');
+                return;
+            }
+            tbody.innerHTML = '';
+            if (users.length === 0) {
+                console.log('No users to display'); // Debugging log
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center">No users found</td></tr>';
+                return;
+            }
+            users.forEach((user, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${user.fullName || 'N/A'}</td>
+                    <td>${user.email || 'N/A'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning" onclick="editUser(${index})">Edit</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteUser(${index})">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Logout
+        document.getElementById('navLogout').addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('loggedInUser');
+            window.location.href = 'login.html';
+        });
+
+        // Edit user
+        window.editUser = function(index) {
+            const user = users[index];
+            document.getElementById('modalTitle').textContent = 'Edit User';
+            document.getElementById('modalFullName').value = user.fullName || '';
+            document.getElementById('modalEmail').value = user.email || '';
+            document.getElementById('modalPassword').value = user.password || '';
+            document.getElementById('editIndex').value = index;
+            document.getElementById('modalPassword').required = false;
+            new bootstrap.Modal(document.getElementById('userModal')).show();
+        };
+
+        // Delete user
+        window.deleteUser = function(index) {
+            if (confirm('Are you sure you want to delete this user?')) {
+                users.splice(index, 1);
+                localStorage.setItem('users', JSON.stringify(users));
+                renderUsers();
+            }
+        };
+
+        // Save user (Add/Edit)
+        document.getElementById('saveUser').addEventListener('click', () => {
+            const fullName = document.getElementById('modalFullName').value;
+            const email = document.getElementById('modalEmail').value;
+            const password = document.getElementById('modalPassword').value;
+            const editIndex = document.getElementById('editIndex').value;
+            const modalEmailError = document.getElementById('modalEmailError');
+            const modalPasswordError = document.getElementById('modalPasswordError');
+
+            modalEmailError.textContent = '';
+            modalPasswordError.textContent = '';
+
+            if (users.some((user, i) => user.email === email && i != editIndex)) {
+                modalEmailError.textContent = 'Email already exists';
+                return;
+            }
+            if (password && password.length < 8) {
+                modalPasswordError.textContent = 'Password must be at least 8 characters';
+                return;
+            }
+
+            const userData = { fullName, email, password: password || users[editIndex]?.password };
+            if (editIndex === '') {
+                users.push(userData);
+            } else {
+                users[editIndex] = userData;
+            }
+            localStorage.setItem('users', JSON.stringify(users));
+            renderUsers();
+            bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
+            document.getElementById('userForm').reset();
+            document.getElementById('modalTitle').textContent = 'Add User';
+            document.getElementById('modalPassword').required = true;
+        });
+
+        // Reset modal on close
+        document.getElementById('userModal').addEventListener('hidden.bs.modal', () => {
+            document.getElementById('userForm').reset();
+            document.getElementById('modalTitle').textContent = 'Add User';
+            document.getElementById('editIndex').value = '';
+            document.getElementById('modalPassword').required = true;
+            document.getElementById('modalEmailError').textContent = '';
+            document.getElementById('modalPasswordError').textContent = '';
+        });
+
+        // Initial render after data load
+        loadData();
+        renderUsers();
+    </script>
+</body>
+</html>
